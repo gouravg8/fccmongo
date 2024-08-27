@@ -28,13 +28,10 @@ const urlSchema = new mongoose.Schema({
 
 const Url = new mongoose.model("Url", urlSchema);
 
-function isValidUrl(url) {
-  try {
-    new URL(url)
-    return true;
-  } catch (error) {
-    return false;
-  }
+const urlPattern = /^(http(s)?:\/\/)[\w.-]+(\.[a-zA-Z]{2,6})([-\w@:%_\+.~#?&//=]*)$/;
+
+function isValidUrl(string) {
+    return urlPattern.test(string);
 }
 
 // app.use((req, res)=>{
@@ -49,15 +46,15 @@ app.get('/', function (req, res) {
 
 
 app.post("/api/shorturl", async (req, res) => {
-  const { original_url } = req.body;
-  if (!isValidUrl(original_url)) {
-    return res.json({ error: "invalid url" });
+  const { url } = req.body;
+  if (!isValidUrl(url)) {
+    return res.json({ error: 'invalid url' });
   }
 
   const short_url = Math.floor(Math.random() * 1000000 + 1000);
   try {
-    await Url.create({ original_url, short_url });
-    return res.json({ original_url, short_url });
+    await Url.create({ original_url: url, short_url });
+    return res.json({ original_url: url, short_url });
   } catch (error) {
     console.log(error);
     return res.json({ error: "Database error" });
@@ -66,12 +63,13 @@ app.post("/api/shorturl", async (req, res) => {
 
 app.get("/api/shorturl/:short_url", async (req, res) => {
   const { short_url } = req.params;
+
   try {
     const outurl = await Url.findOne({ short_url });
     if (outurl) {
       return res.redirect(outurl.original_url);
     } else {
-      return res.json({ error: "No URL found" });
+      { error: 'invalid url' }
     }
   } catch (error) {
     return res.json({ error: "Database error" });
